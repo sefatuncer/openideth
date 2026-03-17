@@ -12,7 +12,8 @@
     "declarationMap": false,
     "sourceMap": true,
     "incremental": true,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "strictPropertyInitialization": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "test"]
