@@ -1,4 +1,10 @@
 import { Module } from '@nestjs/common';
+import { EscrowService } from './escrow.service';
+import { EscrowController } from './escrow.controller';
 
-@Module({})
+@Module({
+  providers: [EscrowService],
+  controllers: [EscrowController],
+  exports: [EscrowService],
+})
 export class EscrowModule {}
