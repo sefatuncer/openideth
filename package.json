@@ -1,0 +1,27 @@
+{
+  "name": "openideth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Blockchain-based rental platform",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "clean": "turbo clean",
+    "db:migrate": "pnpm --filter @openideth/database db:migrate",
+    "db:seed": "pnpm --filter @openideth/database db:seed",
+    "db:generate": "pnpm --filter @openideth/database db:generate",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

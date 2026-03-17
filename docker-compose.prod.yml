@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  redis:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  api:
+    restart: always
+    ports:
+      - '4000:4000'
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+    volumes: []
+
+  worker:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  web:
+    restart: always
+    ports:
+      - '3000:3000'
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    volumes: []
+
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
