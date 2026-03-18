@@ -1,7 +1,8 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards,
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto, UpdatePropertyDto, PropertySearchQueryDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -9,11 +10,15 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { FileUploadService } from '../../common/services/file-upload.service';
 
 @ApiTags('properties')
 @Controller('properties')
 export class PropertiesController {
-  constructor(private propertiesService: PropertiesService) {}
+  constructor(
+    private propertiesService: PropertiesService,
+    private fileUploadService: FileUploadService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -79,6 +84,23 @@ export class PropertiesController {
   @ApiOperation({ summary: 'Remove image from property' })
   async removeImage(@Param('id') id: string, @Param('imageId') imageId: string, @CurrentUser() user: any) {
     return this.propertiesService.removeImage(imageId, user.id);
+  }
+
+  @Post(':id/images/upload')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload property image' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    const { url } = await this.fileUploadService.uploadFile(file, `properties/${id}`, {
+      resize: { width: 1200, height: 900 },
+    });
+    return this.propertiesService.addImage(id, user.id, { url, isPrimary: false, caption: '' });
   }
 
   @Patch(':id/verify')

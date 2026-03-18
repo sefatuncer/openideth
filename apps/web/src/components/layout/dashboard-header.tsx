@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import { LogOut, Settings, User } from 'lucide-react';
 
+import { useRouter } from 'next/navigation';
+
 import { useAuthStore } from '@/hooks/use-auth';
 import { Avatar } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -30,6 +33,7 @@ export function DashboardHeader({ children }: DashboardHeaderProps) {
 
       {/* Right: notifications + user menu */}
       <div className="flex items-center gap-3">
+        <NotificationBell onClick={() => window.location.href = '/dashboard/notifications'} />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
             <Avatar src={user?.avatarUrl} fallback={user?.name || 'U'} size="sm" />

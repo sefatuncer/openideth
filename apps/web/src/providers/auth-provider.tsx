@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { useAuthStore } from '@/hooks/use-auth';
+import { useSocket } from '@/hooks/use-socket';
 
 const PUBLIC_PATHS = ['/', '/login', '/register', '/properties'];
 
@@ -15,6 +16,7 @@ function isPublicPath(pathname: string): boolean {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { refreshUser, isLoading, isAuthenticated } = useAuthStore();
+  useSocket(); // Connect WebSocket for real-time notifications
   const router = useRouter();
   const pathname = usePathname();
 

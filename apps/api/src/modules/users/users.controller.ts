@@ -1,5 +1,6 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -7,11 +8,15 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { FileUploadService } from '../../common/services/file-upload.service';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private fileUploadService: FileUploadService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -35,6 +40,19 @@ export class UsersController {
   @ApiOperation({ summary: 'Update wallet address' })
   async updateWallet(@CurrentUser() user: any, @Body('walletAddress') walletAddress: string) {
     return this.usersService.updateWalletAddress(user.id, walletAddress);
+  }
+
+  @Post('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload avatar' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  async uploadAvatar(@CurrentUser() user: any, @UploadedFile() file: Express.Multer.File) {
+    const { url } = await this.fileUploadService.uploadFile(file, `avatars`, {
+      resize: { width: 256, height: 256 },
+    });
+    return this.usersService.update(user.id, { avatarUrl: url });
   }
 
   @Get()

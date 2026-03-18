@@ -1,15 +1,29 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PaginationQueryDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { NotificationGateway } from '../../common/gateways/notification.gateway';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private notificationGateway?: NotificationGateway,
+  ) {}
 
   async create(userId: string, type: string, title: string, message: string, data?: any) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: { userId, type: type as any, title, message, data },
     });
+
+    // Push real-time notification via WebSocket
+    this.notificationGateway?.sendNotification(userId, {
+      id: notification.id,
+      type,
+      title,
+      message,
+    });
+
+    return notification;
   }
 
   async findByUser(userId: string, pagination: PaginationQueryDto, unreadOnly?: boolean) {

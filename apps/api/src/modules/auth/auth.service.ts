@@ -6,10 +6,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto';
 import { randomUUID } from 'crypto';
+import { EmailJobType } from '../worker/processors/email.processor';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +20,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    @InjectQueue('email') private emailQueue: Queue,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -39,6 +43,15 @@ export class AuthService {
     });
 
     const tokens = await this.generateTokens(user.id, user.role);
+
+    // Queue welcome email
+    await this.emailQueue.add({
+      type: EmailJobType.WELCOME,
+      to: user.email,
+      subject: 'Welcome to OpenIDEth!',
+      templateData: { name: user.name },
+    });
+
     return { ...tokens, user };
   }
 
