@@ -1,16 +1,23 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { ethers } from 'ethers';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { BlockchainService } from '../../common/services/blockchain.service';
 import { PaginationQueryDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 import { CreateAgreementDto, UpdateAgreementDto } from './dto';
 
 @Injectable()
 export class AgreementsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AgreementsService.name);
+  constructor(
+    private prisma: PrismaService,
+    private blockchain: BlockchainService,
+  ) {}
 
   async create(landlordId: string, dto: CreateAgreementDto) {
     const property = await this.prisma.property.findUnique({

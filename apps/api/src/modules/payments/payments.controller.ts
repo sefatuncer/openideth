@@ -76,6 +76,29 @@ export class PaymentsController {
     return this.paymentsService.confirmPayment(id);
   }
 
+  @Post('stripe/connect/onboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start Stripe Connect onboarding for landlord' })
+  async connectOnboard(@CurrentUser() user: any) {
+    const accountId = await this.stripeStrategy.createConnectAccount(user.email);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const url = await this.stripeStrategy.createAccountLink(
+      accountId,
+      `${frontendUrl}/dashboard/payments?refresh=true`,
+      `${frontendUrl}/dashboard/payments?connected=true`,
+    );
+    return { accountId, onboardingUrl: url };
+  }
+
+  @Get('stripe/connect/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check Stripe Connect account status' })
+  async connectStatus(@Query('accountId') accountId: string) {
+    return this.stripeStrategy.getAccountStatus(accountId);
+  }
+
   @Post('stripe/webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Stripe webhook handler' })

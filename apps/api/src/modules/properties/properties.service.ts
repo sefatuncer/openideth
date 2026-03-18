@@ -1,19 +1,26 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { ethers } from 'ethers';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { BlockchainService } from '../../common/services/blockchain.service';
 import { PaginationQueryDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 import { CreatePropertyDto, UpdatePropertyDto, PropertySearchQueryDto } from './dto';
 
 @Injectable()
 export class PropertiesService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(PropertiesService.name);
+  constructor(
+    private prisma: PrismaService,
+    private blockchain: BlockchainService,
+  ) {}
 
   async create(landlordId: string, dto: CreatePropertyDto) {
-    return this.prisma.property.create({
+    const property = await this.prisma.property.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -34,6 +41,27 @@ export class PropertiesService {
         status: 'DRAFT',
       },
     });
+
+    // Register on blockchain (non-blocking)
+    if (this.blockchain.isEnabled() && this.blockchain.propertyRegistry) {
+      try {
+        const dataHash = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify({ id: property.id, title: dto.title, address: dto.address })));
+        const tx = await this.blockchain.propertyRegistry!.registerProperty(dataHash, property.id);
+        const receipt = await tx.wait();
+        const event = receipt.logs[0];
+        if (event) {
+          await this.prisma.property.update({
+            where: { id: property.id },
+            data: { blockchainRegistryId: event.topics[1] },
+          });
+        }
+        this.logger.log(`Property ${property.id} registered on-chain: ${tx.hash}`);
+      } catch (error) {
+        this.logger.error(`Failed to register property on-chain: ${error}`);
+      }
+    }
+
+    return property;
   }
 
   async findAll(query: PropertySearchQueryDto) {
@@ -159,6 +187,19 @@ export class PropertiesService {
   }
 
   async verify(id: string) {
-    return this.prisma.property.update({ where: { id }, data: { isVerified: true } });
+    const property = await this.prisma.property.update({ where: { id }, data: { isVerified: true } });
+
+    // Verify on blockchain (non-blocking)
+    if (this.blockchain.isEnabled() && this.blockchain.propertyRegistry && property.blockchainRegistryId) {
+      try {
+        const tx = await this.blockchain.propertyRegistry!.verifyProperty(BigInt(property.blockchainRegistryId));
+        await tx.wait();
+        this.logger.log(`Property ${id} verified on-chain: ${tx.hash}`);
+      } catch (error) {
+        this.logger.error(`Failed to verify property on-chain: ${error}`);
+      }
+    }
+
+    return property;
   }
 }

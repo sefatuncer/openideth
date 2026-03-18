@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { IPaymentStrategy, PaymentResult } from '../interfaces/payment-strategy.interface';
@@ -6,6 +6,7 @@ import { PLATFORM_FEE_BPS } from '@openideth/shared';
 
 @Injectable()
 export class StripePaymentStrategy implements IPaymentStrategy {
+  private readonly logger = new Logger(StripePaymentStrategy.name);
   private stripe: Stripe;
 
   constructor(private configService: ConfigService) {
@@ -22,17 +23,56 @@ export class StripePaymentStrategy implements IPaymentStrategy {
     const amountInCents = Math.round(amount * 100);
     const platformFee = Math.round((amountInCents * PLATFORM_FEE_BPS) / 10000);
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
+    const params: Stripe.PaymentIntentCreateParams = {
       amount: amountInCents,
       currency: currency.toLowerCase(),
       metadata: metadata || {},
-      application_fee_amount: platformFee,
-    });
+    };
+
+    // If connected account specified, use destination charge
+    const connectedAccountId = metadata?.stripeConnectedAccountId;
+    if (connectedAccountId) {
+      params.transfer_data = { destination: connectedAccountId };
+      params.application_fee_amount = platformFee;
+    }
+
+    const paymentIntent = await this.stripe.paymentIntents.create(params);
 
     return {
       paymentIntentId: paymentIntent.id,
       status: paymentIntent.status,
       clientSecret: paymentIntent.client_secret || undefined,
+    };
+  }
+
+  async createConnectAccount(email: string, businessType = 'individual'): Promise<string> {
+    const account = await this.stripe.accounts.create({
+      type: 'express',
+      email,
+      business_type: businessType as Stripe.AccountCreateParams.BusinessType,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+    return account.id;
+  }
+
+  async createAccountLink(accountId: string, refreshUrl: string, returnUrl: string): Promise<string> {
+    const link = await this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    });
+    return link.url;
+  }
+
+  async getAccountStatus(accountId: string): Promise<{ chargesEnabled: boolean; payoutsEnabled: boolean }> {
+    const account = await this.stripe.accounts.retrieve(accountId);
+    return {
+      chargesEnabled: account.charges_enabled ?? false,
+      payoutsEnabled: account.payouts_enabled ?? false,
     };
   }
 

@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { BlockchainService } from '../../common/services/blockchain.service';
 
 @Injectable()
 export class EscrowService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(EscrowService.name);
+  constructor(
+    private prisma: PrismaService,
+    private blockchain: BlockchainService,
+  ) {}
 
   async createDeposit(agreementId: string, amount: number) {
     const agreement = await this.prisma.rentalAgreement.findUnique({ where: { id: agreementId } });

@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PropertiesModule } from './modules/properties/properties.module';
@@ -21,6 +24,7 @@ import { WorkerModule } from './modules/worker/worker.module';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
@@ -40,6 +44,10 @@ import { WorkerModule } from './modules/worker/worker.module';
     AdminModule,
     HealthModule,
     WorkerModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditLogInterceptor },
   ],
 })
 export class AppModule {}
