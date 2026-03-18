@@ -38,7 +38,7 @@ describe('RentalAgreement', () => {
       expect(a.landlord).to.equal(landlordSigner.address);
       expect(a.tenant).to.equal(tenantSigner.address);
       expect(a.monthlyRent).to.equal(monthlyRent);
-      expect(a.status).to.equal(0); // Draft
+      expect(a.status).to.equal(0n); // Draft
     });
 
     it('should reject self-rental', async () => {
@@ -58,12 +58,12 @@ describe('RentalAgreement', () => {
       await expect(agreement.connect(landlordSigner).signAgreement(0)).to.emit(agreement, 'AgreementSigned');
       let a = await agreement.getAgreement(0);
       expect(a.landlordSigned).to.be.true;
-      expect(a.status).to.equal(0); // Still Draft
+      expect(a.status).to.equal(0n); // Still Draft
 
       await expect(agreement.connect(tenantSigner).signAgreement(0)).to.emit(agreement, 'AgreementActivated');
       a = await agreement.getAgreement(0);
       expect(a.tenantSigned).to.be.true;
-      expect(a.status).to.equal(1); // Active
+      expect(a.status).to.equal(1n); // Active
     });
 
     it('should reject double signing', async () => {
@@ -88,7 +88,7 @@ describe('RentalAgreement', () => {
         .to.emit(agreement, 'AgreementTerminated');
 
       const a = await agreement.getAgreement(0);
-      expect(a.status).to.equal(2); // Terminated
+      expect(a.status).to.equal(2n); // Terminated
     });
 
     it('should reject termination of non-active agreement', async () => {

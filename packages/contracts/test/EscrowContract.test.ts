@@ -34,7 +34,7 @@ describe('EscrowContract', () => {
       expect(e.tenant).to.equal(tenant.address);
       expect(e.landlord).to.equal(landlord.address);
       expect(e.amount).to.equal(ONE_ETH);
-      expect(e.status).to.equal(0); // Active
+      expect(e.status).to.equal(0n); // Active
     });
   });
 
@@ -64,7 +64,7 @@ describe('EscrowContract', () => {
       await expect(escrow.connect(landlord).release(0)).to.emit(escrow, 'Released');
 
       const e = await escrow.getEscrow(0);
-      expect(e.status).to.equal(1); // Released
+      expect(e.status).to.equal(1n); // Released
     });
 
     it('should reject release before release time', async () => {
@@ -83,7 +83,7 @@ describe('EscrowContract', () => {
       await expect(escrow.refund(0)).to.emit(escrow, 'Refunded');
 
       const e = await escrow.getEscrow(0);
-      expect(e.status).to.equal(2); // Refunded
+      expect(e.status).to.equal(2n); // Refunded
     });
   });
 
@@ -103,7 +103,7 @@ describe('EscrowContract', () => {
 
       await expect(escrow.resolveDispute(0, true)).to.emit(escrow, 'DisputeResolved').withArgs(0, true);
       const e = await escrow.getEscrow(0);
-      expect(e.status).to.equal(2); // Refunded (toTenant=true)
+      expect(e.status).to.equal(2n); // Refunded (toTenant=true)
     });
 
     it('should reject dispute from non-party', async () => {
