@@ -36,7 +36,7 @@ export interface Property {
   averageRating?: number;
 }
 
-function buildSearchParams(search: PropertySearchInput): string {
+function buildSearchParams(search: Record<string, unknown>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(search)) {
     if (value !== undefined && value !== null && value !== '') {
@@ -46,11 +46,16 @@ function buildSearchParams(search: PropertySearchInput): string {
   return params.toString();
 }
 
-export function useProperties(search: PropertySearchInput = {}) {
+interface UsePropertiesParams extends PropertySearchInput {
+  page?: number;
+  limit?: number;
+}
+
+export function useProperties(search: UsePropertiesParams = {}) {
   return useQuery({
     queryKey: ['properties', search],
     queryFn: () => {
-      const qs = buildSearchParams(search);
+      const qs = buildSearchParams(search as Record<string, unknown>);
       return api.get<PaginatedResponse<Property>>(`/properties${qs ? `?${qs}` : ''}`);
     },
   });
