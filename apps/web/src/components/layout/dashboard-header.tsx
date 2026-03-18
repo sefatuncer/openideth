@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/use-auth';
 import { Avatar } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -31,8 +32,9 @@ export function DashboardHeader({ children }: DashboardHeaderProps) {
         {children}
       </div>
 
-      {/* Right: notifications + user menu */}
-      <div className="flex items-center gap-3">
+      {/* Right: theme + notifications + user menu */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
         <NotificationBell onClick={() => window.location.href = '/dashboard/notifications'} />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">

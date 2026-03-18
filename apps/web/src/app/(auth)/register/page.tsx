@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserRole } from '@openideth/shared';
+import { UserRole, registerSchema } from '@openideth/shared';
 
 import { useAuthStore } from '@/hooks/use-auth';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,11 +26,25 @@ export default function RegisterPage() {
   const [role, setRole] = useState(UserRole.TENANT);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+
+    // Zod client-side validation
+    const result = registerSchema.safeParse({ email, password, name, role });
+    if (!result.success) {
+      const errs: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as string;
+        if (!errs[field]) errs[field] = issue.message;
+      }
+      setFieldErrors(errs);
+      return;
+    }
 
     if (!agreed) {
       setError('You must agree to the terms and conditions.');
@@ -70,6 +84,7 @@ export default function RegisterPage() {
             placeholder="John Doe"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            error={fieldErrors.name}
             required
             autoComplete="name"
           />
@@ -79,6 +94,7 @@ export default function RegisterPage() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            error={fieldErrors.email}
             required
             autoComplete="email"
           />
@@ -88,6 +104,7 @@ export default function RegisterPage() {
             placeholder="At least 8 characters"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            error={fieldErrors.password}
             required
             minLength={8}
             autoComplete="new-password"
